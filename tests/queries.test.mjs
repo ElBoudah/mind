@@ -67,6 +67,16 @@ test('journal exclut les actions ouvertes, plus récent en haut', () => {
   assert.deepEqual(ids, ['e-papa-4', 'e-papa-2', 'e-papa-1']);
 });
 
+test('journal trie par date affichée : une action faite remonte à sa date de réalisation', () => {
+  const doc = makeDoc();
+  // e-papa-4 créée le 14/09, faite le 15/09 ; ajoutons une pensée du 14/09 à 12h : elle doit passer SOUS l'action faite le 15
+  doc.entries.push({ id: 'e-papa-5', subjectId: 'papa', type: 'thought', content: 'x', createdAt: '2026-09-14T12:00:00.000Z', doneAt: null });
+  assert.deepEqual(q.journal(doc, 'papa').map(e => e.id), ['e-papa-4', 'e-papa-5', 'e-papa-2', 'e-papa-1']);
+  // et une action créée le 01/09 mais faite le 19/09 passe en tête
+  doc.entries.push({ id: 'e-papa-6', subjectId: 'papa', type: 'action', content: 'y', createdAt: '2026-09-01T10:00:00.000Z', doneAt: '2026-09-19T10:00:00.000Z' });
+  assert.equal(q.journal(doc, 'papa')[0].id, 'e-papa-6');
+});
+
 test('activeCount compte les descendants actifs', () => {
   const doc = makeDoc();
   assert.equal(q.activeCount(doc, 'relations'), 3); // papa, communication, laura

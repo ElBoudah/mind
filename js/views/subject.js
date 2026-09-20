@@ -30,7 +30,7 @@ function journalItem(e) {
   let body = escapeHtml(e.content);
   if (e.type === 'weight') body = `Poids → ${escapeHtml(e.content)}`;
   if (e.type === 'action') body = `Fait : ${body}`;
-  const date = e.type === 'action' ? e.doneAt : e.createdAt;
+  const date = q.displayDate(e);
   return `<li class="journal-item ${e.type}" data-entry="${escapeHtml(e.id)}">
     <span class="journal-date">${formatDate(date)}</span>
     <span class="journal-body">${body}</span>

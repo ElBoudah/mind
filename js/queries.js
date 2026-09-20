@@ -70,10 +70,14 @@ export function openActions(doc, rootId = null) {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+export function displayDate(e) {
+  return e.type === 'action' && e.doneAt ? e.doneAt : e.createdAt;
+}
+
 export function journal(doc, id) {
   return doc.entries
     .filter(e => e.subjectId === id && !(e.type === 'action' && e.doneAt === null))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort((a, b) => displayDate(b).localeCompare(displayDate(a)));
 }
 
 export function activeCount(doc, id) {
