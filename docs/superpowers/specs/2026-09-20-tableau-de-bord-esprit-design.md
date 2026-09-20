@@ -55,7 +55,7 @@ Défilement vertical, sans bandeau de titre. Trois zones dans cet ordre :
 
 Défilement vertical. Sections dans cet ordre :
 
-1. **Fil d'Ariane** cliquable, du thème jusqu'au parent direct, tronqué au milieu si trop long.
+1. **Fil d'Ariane** cliquable, du thème jusqu'au parent direct, passe à la ligne si trop long.
 2. **Titre** et, à droite, le **poids** en trois points. Un tap sur le poids fait défiler 0, 1, 2, 3. Chaque changement crée une entrée de type poids dans le journal.
 3. **Intention** : bloc de texte libre, optionnel, éditable sur place. Une seule zone, sans découpage imposé.
 4. **À faire** : actions ouvertes du sujet et de son sous-arbre, celles des enfants avec le titre de l'enfant en petit. Cocher sur place.
@@ -128,7 +128,7 @@ Un seul document JSON, tenu en mémoire, réécrit dans le stockage local du nav
 
 ### 5.3 Export et import
 
-- Export : téléchargement du document tel quel, nommé `esprit-AAAA-MM-JJ.json`.
+- Export : téléchargement du document tel quel, nommé `mind-AAAA-MM-JJ.json`.
 - Import : sélection d'un fichier, lecture, validation (JSON valide, champ `version` reconnu, listes présentes, identifiants uniques, références `parentId` et `subjectId` résolues, pas de cycle). En cas d'échec, message explicite et aucune modification. Si valide, confirmation « Remplacer toutes les données actuelles ? » puis remplacement et migration si nécessaire.
 
 ### 5.4 Suppression
@@ -137,7 +137,7 @@ Supprimer un sujet supprime son sous-arbre et toutes les entrées concernées. C
 
 ### 5.5 Hors ligne
 
-Un service worker met en cache les fichiers de l'application à l'installation. Stratégie : servir depuis le cache, mettre à jour en arrière-plan, la nouvelle version s'active à l'ouverture suivante. Le manifest déclare le nom, les icônes, l'orientation portrait et l'affichage autonome.
+Un service worker met en cache tous les fichiers de l'application à l'installation. Stratégie : servir depuis le cache, rafraîchir en arrière-plan. Quand une nouvelle version est publiée, elle est entièrement précachée puis prend le contrôle immédiatement (`skipWaiting`), afin qu'un onglet resté ouvert des jours sur le téléphone ne bloque pas la mise à jour ; la page en cours garde son code jusqu'au prochain chargement, les données ne sont pas affectées. Le manifest déclare le nom, les icônes, l'orientation portrait et l'affichage autonome.
 
 ## 6. Structure du code
 
