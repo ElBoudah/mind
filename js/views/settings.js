@@ -2,7 +2,7 @@ import * as q from '../queries.js';
 import { validateDoc } from '../store.js';
 import { escapeHtml, pathLabel, formatDate, downloadText, notice } from './helpers.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 
 export function render(root, { store, navigate, applyTheme, currentTheme }) {
   const doc = store.doc;

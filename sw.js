@@ -1,5 +1,5 @@
 // Precache + cache-first, mise à jour en arrière-plan. Incrémenter CACHE_NAME à chaque déploiement.
-const CACHE_NAME = 'mind-v2';
+const CACHE_NAME = 'mind-v3';
 const ASSETS = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/store.js', './js/queries.js', './js/router.js',

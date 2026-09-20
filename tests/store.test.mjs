@@ -275,3 +275,19 @@ test('importJson remplace tout si valide, ne touche rien sinon', () => {
   assert.equal(notified, 1);
   assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).subjects.length, 3);
 });
+
+test('setWeight ne garde qu\'une entrée de poids par jour, la dernière', () => {
+  const { store } = newStore(makeDoc());
+  store.setWeight('laura', 1);
+  store.setWeight('laura', 2);
+  store.setWeight('laura', 3);
+  const weights = store.doc.entries.filter(e => e.subjectId === 'laura' && e.type === 'weight');
+  assert.equal(weights.length, 1);
+  assert.equal(weights[0].content, '3');
+  assert.equal(store.doc.subjects.find(s => s.id === 'laura').weight, 3);
+  // une entrée de poids d'un autre jour (e-job-2, le 18/09) n'est pas écrasée : fakeNow est le 20/09
+  store.setWeight('job', 3);
+  const jobWeights = store.doc.entries.filter(e => e.subjectId === 'job' && e.type === 'weight');
+  assert.equal(jobWeights.length, 2);
+  assert.equal(jobWeights.at(-1).content, '3');
+});

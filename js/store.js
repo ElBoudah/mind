@@ -195,7 +195,18 @@ export class Store {
     if (s.weight === weight) return;
     this._commit(doc => {
       s.weight = weight;
-      doc.entries.push({ id: this.makeId(), subjectId: id, type: 'weight', content: String(weight), createdAt: this.now(), doneAt: null });
+      const now = this.now();
+      // Une seule entrée de poids par jour : la dernière valeur du jour écrase la précédente.
+      const lastToday = doc.entries
+        .filter(e => e.subjectId === id && e.type === 'weight' && e.createdAt.slice(0, 10) === now.slice(0, 10))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .at(-1);
+      if (lastToday) {
+        lastToday.content = String(weight);
+        lastToday.createdAt = now;
+      } else {
+        doc.entries.push({ id: this.makeId(), subjectId: id, type: 'weight', content: String(weight), createdAt: now, doneAt: null });
+      }
     });
   }
 
