@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeDoc } from './fixtures.mjs';
-import { Store, emptyDoc, validateDoc, migrate, SCHEMA_VERSION, STORAGE_KEY } from '../js/store.js';
+import { Store, emptyDoc, validateDoc, migrate, SCHEMA_VERSION, STORAGE_KEY, CORRUPT_KEY } from '../js/store.js';
 import * as q from '../js/queries.js';
 
 export function memoryStorage(initial = {}) {
   const m = new Map(Object.entries(initial));
-  return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), _map: m };
+  return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k), _map: m };
 }
 
 let tick = 0;
@@ -99,6 +99,44 @@ test('load avec un document JSON valide mais mal formé repart à vide', () => {
   store.load();
   assert.equal(store.doc.subjects.length, 3);
   assert.equal(store.corrupt, raw);
+});
+
+test('un document corrompu survit au rechargement dans une clé de secours', () => {
+  const storage = memoryStorage({ [STORAGE_KEY]: '{pas du json' });
+  const first = new Store(storage, { now: fakeNow, makeId: fakeId });
+  first.load();
+  const second = new Store(storage, { now: fakeNow, makeId: fakeId });
+  second.load();
+  assert.equal(second.corrupt, '{pas du json');
+  assert.equal(second.doc.subjects.length, 3);
+  second.clearCorrupt();
+  assert.equal(second.corrupt, null);
+  const third = new Store(storage, { now: fakeNow, makeId: fakeId }); third.load();
+  assert.equal(third.corrupt, null);
+});
+
+test('un échec de sauvegarde est signalé sans casser la notification', () => {
+  const storage = memoryStorage({ [STORAGE_KEY]: JSON.stringify(makeDoc()) });
+  const store = new Store(storage, { now: fakeNow, makeId: fakeId });
+  store.load();
+  storage.setItem = () => { throw new Error('QuotaExceededError'); };
+  let notified = 0, reported = null;
+  store.subscribe(() => { notified += 1; });
+  store.onSaveError = m => { reported = m; };
+  store.setWeight('laura', 1);
+  assert.equal(notified, 1);
+  assert.match(reported, /stockage/i);
+  assert.match(store.saveError, /stockage/i);
+  assert.equal(store.doc.subjects.find(s => s.id === 'laura').weight, 1);
+});
+
+test('setIntent sauvegarde sans notifier (évite le re-rendu pendant le blur)', () => {
+  const { store, storage } = newStore(makeDoc());
+  let notified = 0;
+  store.subscribe(() => { notified += 1; });
+  store.setIntent('papa', 'Nouvelle intention');
+  assert.equal(notified, 0);
+  assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).subjects.find(s => s.id === 'papa').intent, 'Nouvelle intention');
 });
 
 test('createSubject ajoute un enfant avec le bon order', () => {

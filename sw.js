@@ -1,5 +1,5 @@
 // Precache + cache-first, mise à jour en arrière-plan. Incrémenter CACHE_NAME à chaque déploiement.
-const CACHE_NAME = 'mind-v1';
+const CACHE_NAME = 'mind-v2';
 const ASSETS = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/store.js', './js/queries.js', './js/router.js',
@@ -22,7 +22,7 @@ self.addEventListener('fetch', e => {
       const fresh = fetch(e.request).then(res => {
         if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
         return res;
-      }).catch(() => cached);
+      }).catch(() => cached ?? Response.error());
       return cached || fresh;
     })
   );

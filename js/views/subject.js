@@ -103,7 +103,7 @@ export function render(root, { store, route, navigate }) {
 
   root.onchange = e => {
     const box = e.target.closest('[data-done]');
-    if (box && box.checked) setTimeout(() => { store.completeAction(box.dataset.done); notice('Fait.'); }, 150);
+    if (box && box.checked) setTimeout(() => { try { store.completeAction(box.dataset.done); notice('Fait.'); } catch (err) { notice(err.message); } }, 150);
   };
 
   // L'écouteur d'appui long est posé une seule fois sur root (qui survit aux rendus) ;

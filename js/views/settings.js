@@ -1,4 +1,5 @@
 import * as q from '../queries.js';
+import { validateDoc } from '../store.js';
 import { escapeHtml, pathLabel, formatDate, downloadText, notice } from './helpers.js';
 
 const APP_VERSION = '1.0.0';
@@ -25,6 +26,7 @@ export function render(root, { store, navigate, applyTheme, currentTheme }) {
       <button class="row" data-import><span class="row-main"><span class="row-title">Importer des données</span><span class="row-sub">Remplace tout par un fichier exporté</span></span></button>
       <input type="file" accept="application/json,.json" hidden>
       ${store.corrupt ? '<button class="row" data-recover><span class="row-main"><span class="row-title">Récupérer les données illisibles</span><span class="row-sub">Télécharge le contenu brut trouvé au démarrage</span></span></button>' : ''}
+      ${store.corrupt ? '<button class="row" data-forget-corrupt><span class="row-main"><span class="row-title">Oublier les données illisibles</span><span class="row-sub">Après les avoir téléchargées</span></span></button>' : ''}
     </section>
 
     <section class="section">
@@ -43,6 +45,10 @@ export function render(root, { store, navigate, applyTheme, currentTheme }) {
     const file = fileInput.files?.[0];
     if (!file) return;
     const text = await file.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { notice('Le fichier n\'est pas du JSON valide.'); fileInput.value = ''; return; }
+    const v = validateDoc(parsed);
+    if (!v.ok) { notice(v.error); fileInput.value = ''; return; }
     if (!confirm('Remplacer toutes les données actuelles par ce fichier ?')) { fileInput.value = ''; return; }
     try { store.importJson(text); notice('Données importées.'); } catch (err) { notice(err.message); }
     fileInput.value = '';
@@ -57,5 +63,9 @@ export function render(root, { store, navigate, applyTheme, currentTheme }) {
     if (e.target.closest('[data-export]')) return downloadText(store.exportFilename(), store.exportJson());
     if (e.target.closest('[data-import]')) return fileInput.click();
     if (e.target.closest('[data-recover]')) return downloadText('mind-illisible.json', store.corrupt);
+    if (e.target.closest('[data-forget-corrupt]')) {
+      if (confirm('Oublier définitivement les données illisibles ?')) { store.clearCorrupt(); notice('Oublié.'); }
+      return;
+    }
   };
 }

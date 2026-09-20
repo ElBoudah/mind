@@ -43,7 +43,7 @@ export function render(root, { store, navigate }) {
       ${weighing.length ? weighing.map(s => subjectRow(doc, s)).join('') : '<p class="empty">Rien ne pèse en ce moment.</p>'}
     </section>
     <section class="section">
-      <h2 class="section-title"><span>À faire</span><span>${actions.length || ''}</span></h2>
+      <h2 class="section-title">À faire</h2>
       ${actions.length ? actions.map(e => actionRow(doc, e)).join('') : '<p class="empty">Rien à faire pour l\'instant.</p>'}
     </section>
     <section class="section">
@@ -69,7 +69,7 @@ export function render(root, { store, navigate }) {
     const box = e.target.closest('[data-done]');
     if (box && box.checked) {
       const id = box.dataset.done;
-      setTimeout(() => { store.completeAction(id); notice('Fait.'); }, 150);
+      setTimeout(() => { try { store.completeAction(id); notice('Fait.'); } catch (err) { notice(err.message); } }, 150);
     }
   };
 }

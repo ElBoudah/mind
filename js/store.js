@@ -3,6 +3,7 @@ import * as q from './queries.js';
 
 export const SCHEMA_VERSION = 1;
 export const STORAGE_KEY = 'mind.doc';
+export const CORRUPT_KEY = STORAGE_KEY + '.corrupt';
 export const ENTRY_TYPES = ['thought', 'decision', 'action', 'weight'];
 
 const defaultNow = () => new Date().toISOString();
@@ -81,12 +82,15 @@ export class Store {
     this.makeId = makeId;
     this._doc = null;
     this.corrupt = null;
+    this.saveError = null;
+    this.onSaveError = null;
     this._subs = new Set();
   }
 
   get doc() { return this._doc; }
 
   load() {
+    this.corrupt = this.storage.getItem(CORRUPT_KEY) ?? null;
     const raw = this.storage.getItem(STORAGE_KEY);
     if (raw === null) {
       this._doc = emptyDoc(this.now, this.makeId);
@@ -98,6 +102,7 @@ export class Store {
     const v = validateDoc(parsed);
     if (!v.ok) {
       this.corrupt = raw;
+      try { this.storage.setItem(CORRUPT_KEY, raw); } catch { /* stockage indisponible */ }
       this._doc = emptyDoc(this.now, this.makeId);
       this._save();
       return;
@@ -107,19 +112,32 @@ export class Store {
     if (this._doc.version !== before) this._save();
   }
 
+  clearCorrupt() {
+    this._commit(() => {
+      this.storage.removeItem?.(CORRUPT_KEY);
+      this.corrupt = null;
+    });
+  }
+
   subscribe(fn) {
     this._subs.add(fn);
     return () => this._subs.delete(fn);
   }
 
   _save() {
-    this.storage.setItem(STORAGE_KEY, JSON.stringify(this._doc));
+    try {
+      this.storage.setItem(STORAGE_KEY, JSON.stringify(this._doc));
+      this.saveError = null;
+    } catch {
+      this.saveError = 'Impossible d\'enregistrer : stockage plein ou indisponible. Exportez vos données.';
+      this.onSaveError?.(this.saveError);
+    }
   }
 
-  _commit(mutator) {
+  _commit(mutator, { notify = true } = {}) {
     const result = mutator(this._doc);
     this._save();
-    for (const fn of this._subs) fn(this._doc);
+    if (notify) for (const fn of this._subs) fn(this._doc);
     return result;
   }
 
@@ -167,7 +185,7 @@ export class Store {
 
   setIntent(id, intent) {
     const s = this._subject(id);
-    this._commit(() => { s.intent = intent ?? ''; });
+    this._commit(() => { s.intent = intent ?? ''; }, { notify: false });
   }
 
   setWeight(id, weight) {
