@@ -108,3 +108,9 @@ export function moveTargets(doc, id) {
     .filter(s => !excluded.has(s.id) && isActive(doc, s.id))
     .sort((a, b) => pathTitles(doc, a.id).join(' › ').localeCompare(pathTitles(doc, b.id).join(' › '), 'fr'));
 }
+
+export function activeSubjectsByPath(doc) {
+  return doc.subjects
+    .filter(s => isActive(doc, s.id))
+    .sort((a, b) => pathTitles(doc, a.id).join(' › ').localeCompare(pathTitles(doc, b.id).join(' › '), 'fr'));
+}

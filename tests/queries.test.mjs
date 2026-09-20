@@ -93,3 +93,8 @@ test('moveTargets exclut le sujet et ses descendants', () => {
   assert.ok(ids.includes('laura'));
   assert.ok(!ids.includes('moi')); // posé
 });
+
+test('activeSubjectsByPath liste tous les actifs triés par chemin', () => {
+  const ids = q.activeSubjectsByPath(makeDoc()).map(s => s.id);
+  assert.deepEqual(ids, ['relations', 'laura', 'papa', 'communication', 'travail', 'job']);
+});
