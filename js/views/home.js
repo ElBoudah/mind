@@ -77,7 +77,7 @@ export function render(root, { store, navigate }) {
 export function openNewSubjectSheet(store, navigate, defaultParentId = null) {
   const doc = store.doc;
   const parents = q.activeSubjectsByPath(doc);
-  const selected = defaultParentId ?? parents[0]?.id ?? '';
+  const selected = defaultParentId ?? q.roots(doc)[0]?.id ?? '';
   const sheet = openSheet(`
     <h2>Nouveau sujet</h2>
     <form id="new-subject">
