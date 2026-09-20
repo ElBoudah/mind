@@ -29,10 +29,12 @@ export function validateDoc(raw) {
 
   const ids = new Set();
   for (const s of raw.subjects) {
+    if (!s || typeof s !== 'object') return fail('Sujet mal formé.');
     if (!isStr(s.id) || !isStr(s.title) || !isStr(s.intent) || !isStr(s.createdAt)
       || !(s.parentId === null || isStr(s.parentId)) || !isIsoOrNull(s.restedAt)
       || !Number.isInteger(s.order)) return fail(`Sujet mal formé (${s.id ?? '?'}).`);
     if (!Number.isInteger(s.weight) || s.weight < 0 || s.weight > 3) return fail(`Poids invalide sur « ${s.title} ».`);
+    if (s.parentId === null && s.weight !== 0) return fail(`Un thème (racine) doit avoir un poids de 0 (« ${s.title} »).`);
     if (ids.has(s.id)) return fail(`Identifiant de sujet en double (${s.id}).`);
     ids.add(s.id);
   }
@@ -51,6 +53,7 @@ export function validateDoc(raw) {
   }
   const eids = new Set();
   for (const e of raw.entries) {
+    if (!e || typeof e !== 'object') return fail('Entrée mal formée.');
     if (!isStr(e.id) || !isStr(e.content) || !isStr(e.createdAt) || !isIsoOrNull(e.doneAt)) return fail(`Entrée mal formée (${e.id ?? '?'}).`);
     if (!ENTRY_TYPES.includes(e.type)) return fail(`Type d'entrée inconnu (${e.type}).`);
     if (!ids.has(e.subjectId)) return fail(`Sujet introuvable pour une entrée (${e.id}).`);

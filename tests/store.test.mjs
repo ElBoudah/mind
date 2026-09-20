@@ -49,6 +49,10 @@ test('validateDoc refuse les documents incohérents avec un message français', 
   assert.match(validateDoc(badType).error, /type/i);
   const badWeight = makeDoc(); badWeight.subjects[1].weight = 7;
   assert.match(validateDoc(badWeight).error, /poids/i);
+  const rootWeight = makeDoc(); rootWeight.subjects.find(s => s.id === 'relations').weight = 2;
+  assert.match(validateDoc(rootWeight).error, /racine|thème/i);
+  assert.equal(validateDoc({ version: 1, subjects: [null], entries: [] }).ok, false);
+  assert.equal(validateDoc({ version: 1, subjects: [], entries: [null] }).ok, false);
 });
 
 test('migrate laisse un document courant inchangé', () => {
@@ -85,4 +89,13 @@ test('subscribe notifie après une opération et se désabonne', () => {
   off();
   store._commit(() => {});
   assert.equal(calls, 1);
+});
+
+test('load avec un document JSON valide mais mal formé repart à vide', () => {
+  const raw = JSON.stringify({ version: 1, subjects: [null], entries: [] });
+  const storage = memoryStorage({ [STORAGE_KEY]: raw });
+  const store = new Store(storage, { now: fakeNow, makeId: fakeId });
+  store.load();
+  assert.equal(store.doc.subjects.length, 3);
+  assert.equal(store.corrupt, raw);
 });
