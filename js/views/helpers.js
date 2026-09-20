@@ -59,3 +59,31 @@ export function notice(message) {
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2500);
 }
+
+export function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function longPress(element, selector, handler, delayMs = 500) {
+  let timer = null;
+  let target = null;
+  const cancel = () => { clearTimeout(timer); timer = null; target = null; };
+  element.addEventListener('pointerdown', e => {
+    target = e.target.closest(selector);
+    if (!target) return;
+    timer = setTimeout(() => { const t = target; cancel(); handler(t); }, delayMs);
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave', 'scroll']) element.addEventListener(ev, cancel, { passive: true });
+  element.addEventListener('pointermove', e => { if (timer && (Math.abs(e.movementX) > 6 || Math.abs(e.movementY) > 6)) cancel(); });
+  element.addEventListener('contextmenu', e => {
+    const t = e.target.closest(selector);
+    if (t) { e.preventDefault(); cancel(); handler(t); }
+  });
+}

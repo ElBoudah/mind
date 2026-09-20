@@ -131,3 +131,4 @@ h1.title span { overflow-wrap: anywhere; }
 
 .search-input { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); margin-bottom: 18px; font-size: 1.05rem; }
 .settings-list .row { align-items: center; }
+.dots-btn { padding: 6px 4px; }
