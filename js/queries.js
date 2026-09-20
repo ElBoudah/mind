@@ -46,3 +46,65 @@ export function isActive(doc, id) {
   if (!s || s.restedAt !== null) return false;
   return ancestors(doc, id).every(a => a.restedAt === null);
 }
+
+export function lastUpdatedAt(doc, id) {
+  let max = subjectById(doc, id)?.createdAt ?? '';
+  for (const e of doc.entries) {
+    if (e.subjectId === id && e.createdAt > max) max = e.createdAt;
+  }
+  return max;
+}
+
+export function weighing(doc) {
+  return doc.subjects
+    .filter(s => s.parentId !== null && s.weight > 0 && isActive(doc, s.id))
+    .sort((a, b) => b.weight - a.weight || lastUpdatedAt(doc, a.id).localeCompare(lastUpdatedAt(doc, b.id)));
+}
+
+export function openActions(doc, rootId = null) {
+  const scope = rootId === null ? null : new Set([rootId, ...descendantIds(doc, rootId)]);
+  return doc.entries
+    .filter(e => e.type === 'action' && e.doneAt === null
+      && (scope === null || scope.has(e.subjectId))
+      && isActive(doc, e.subjectId))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export function journal(doc, id) {
+  return doc.entries
+    .filter(e => e.subjectId === id && !(e.type === 'action' && e.doneAt === null))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function activeCount(doc, id) {
+  return descendantIds(doc, id).filter(d => isActive(doc, d)).length;
+}
+
+export function restedSubjects(doc) {
+  return doc.subjects
+    .filter(s => s.restedAt !== null)
+    .sort((a, b) => b.restedAt.localeCompare(a.restedAt));
+}
+
+export function normalize(str) {
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+export function search(doc, query) {
+  const nq = normalize(query);
+  if (!nq) return [];
+  return doc.subjects
+    .filter(s => normalize(s.title).includes(nq))
+    .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
+}
+
+export function pathTitles(doc, id) {
+  return [...ancestors(doc, id), subjectById(doc, id)].filter(Boolean).map(s => s.title);
+}
+
+export function moveTargets(doc, id) {
+  const excluded = new Set([id, ...descendantIds(doc, id)]);
+  return doc.subjects
+    .filter(s => !excluded.has(s.id) && isActive(doc, s.id))
+    .sort((a, b) => pathTitles(doc, a.id).join(' › ').localeCompare(pathTitles(doc, b.id).join(' › '), 'fr'));
+}

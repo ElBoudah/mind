@@ -39,3 +39,57 @@ test('isActive tient compte des ancêtres posés', () => {
   assert.equal(q.isActive(doc, 'trail'), false);
   assert.equal(q.isActive(doc, 'moi'), false);
 });
+
+test('lastUpdatedAt prend la dernière entrée, sinon la création', () => {
+  const doc = makeDoc();
+  assert.equal(q.lastUpdatedAt(doc, 'papa'), '2026-09-14T10:00:00.000Z');
+  assert.equal(q.lastUpdatedAt(doc, 'relations'), '2026-09-01T10:00:00.000Z');
+});
+
+test('weighing : actifs, non racines, poids > 0, tri poids desc puis plus ancien d\'abord', () => {
+  const ids = q.weighing(makeDoc()).map(s => s.id);
+  // papa 3 ; communication 2 (maj 16/09) et job 2 (maj 18/09) → communication d'abord ; vacances posé, trail inactif, laura 0
+  assert.deepEqual(ids, ['papa', 'communication', 'job']);
+});
+
+test('openActions sur tout l\'arbre exclut faits, posés et inactifs', () => {
+  const ids = q.openActions(makeDoc()).map(e => e.id);
+  assert.deepEqual(ids, ['e-job-1', 'e-papa-3', 'e-com-1', 'e-laura-1']);
+});
+
+test('openActions sur un sous-arbre inclut le sujet et ses enfants actifs', () => {
+  const ids = q.openActions(makeDoc(), 'papa').map(e => e.id);
+  assert.deepEqual(ids, ['e-papa-3', 'e-com-1']);
+});
+
+test('journal exclut les actions ouvertes, plus récent en haut', () => {
+  const ids = q.journal(makeDoc(), 'papa').map(e => e.id);
+  assert.deepEqual(ids, ['e-papa-4', 'e-papa-2', 'e-papa-1']);
+});
+
+test('activeCount compte les descendants actifs', () => {
+  const doc = makeDoc();
+  assert.equal(q.activeCount(doc, 'relations'), 3); // papa, communication, laura
+  assert.equal(q.activeCount(doc, 'moi'), 0);
+});
+
+test('restedSubjects trie du plus récemment posé au plus ancien', () => {
+  assert.deepEqual(q.restedSubjects(makeDoc()).map(s => s.id), ['moi', 'vacances']);
+});
+
+test('normalize et search ignorent casse et accents', () => {
+  assert.equal(q.normalize('  Élève À '), 'eleve a');
+  const doc = makeDoc();
+  assert.deepEqual(q.search(doc, 'PAPA').map(s => s.id), ['papa']);
+  assert.deepEqual(q.search(doc, 'vacan').map(s => s.id), ['vacances']); // posé inclus
+  assert.deepEqual(q.search(doc, ''), []);
+});
+
+test('moveTargets exclut le sujet et ses descendants', () => {
+  const ids = q.moveTargets(makeDoc(), 'papa').map(s => s.id);
+  assert.ok(!ids.includes('papa'));
+  assert.ok(!ids.includes('communication'));
+  assert.ok(ids.includes('relations'));
+  assert.ok(ids.includes('laura'));
+  assert.ok(!ids.includes('moi')); // posé
+});
