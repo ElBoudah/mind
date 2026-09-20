@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeDoc } from './fixtures.mjs';
 import { Store, emptyDoc, validateDoc, migrate, SCHEMA_VERSION, STORAGE_KEY } from '../js/store.js';
+import * as q from '../js/queries.js';
 
 export function memoryStorage(initial = {}) {
   const m = new Map(Object.entries(initial));
@@ -178,4 +179,61 @@ test('deletionImpact et deleteSubject suppriment le sous-arbre', () => {
   assert.ok(!store.doc.subjects.some(s => ['papa', 'communication', 'vacances'].includes(s.id)));
   assert.ok(!store.doc.entries.some(e => ['papa', 'communication', 'vacances'].includes(e.subjectId)));
   assert.equal(store.doc.subjects.length, 6);
+});
+
+test('addEntry crée pensée, décision ou action ouverte', () => {
+  const { store } = newStore(makeDoc());
+  const a = store.addEntry('laura', 'action', ' Proposer une rando ');
+  assert.equal(a.content, 'Proposer une rando');
+  assert.equal(a.doneAt, null);
+  assert.equal(a.subjectId, 'laura');
+  const d = store.addEntry('laura', 'decision', 'Je propose une activité, pas un café.');
+  assert.equal(d.type, 'decision');
+  assert.throws(() => store.addEntry('laura', 'weight', '2'), /type/i);
+  assert.throws(() => store.addEntry('laura', 'thought', '  '), /vide/i);
+  assert.throws(() => store.addEntry('inexistant', 'thought', 'x'), /sujet/i);
+});
+
+test('updateEntry et deleteEntry', () => {
+  const { store } = newStore(makeDoc());
+  store.updateEntry('e-papa-1', ' Corrigé ');
+  assert.equal(store.doc.entries.find(e => e.id === 'e-papa-1').content, 'Corrigé');
+  assert.throws(() => store.updateEntry('e-papa-1', ''), /vide/i);
+  store.deleteEntry('e-papa-1');
+  assert.ok(!store.doc.entries.some(e => e.id === 'e-papa-1'));
+  assert.throws(() => store.deleteEntry('e-papa-1'), /introuvable/i);
+});
+
+test('completeAction remplit doneAt et la fait passer au journal', () => {
+  const { store } = newStore(makeDoc());
+  store.completeAction('e-papa-3');
+  const e = store.doc.entries.find(x => x.id === 'e-papa-3');
+  assert.ok(e.doneAt);
+  assert.ok(!q.openActions(store.doc, 'papa').some(x => x.id === 'e-papa-3'));
+  assert.ok(q.journal(store.doc, 'papa').some(x => x.id === 'e-papa-3'));
+  assert.throws(() => store.completeAction('e-papa-3'), /déjà/i);
+  assert.throws(() => store.completeAction('e-papa-1'), /action/i);
+});
+
+test('exportJson et exportFilename', () => {
+  const { store } = newStore(makeDoc());
+  const text = store.exportJson();
+  assert.deepEqual(JSON.parse(text), makeDoc());
+  assert.ok(text.includes('\n  '));
+  assert.equal(store.exportFilename('2026-09-20T15:04:05.000Z'), 'mind-2026-09-20.json');
+});
+
+test('importJson remplace tout si valide, ne touche rien sinon', () => {
+  const { store, storage } = newStore(makeDoc());
+  let notified = 0;
+  store.subscribe(() => { notified += 1; });
+  assert.throws(() => store.importJson('{pas du json'), /valide|JSON/i);
+  assert.throws(() => store.importJson(JSON.stringify({ version: 1, subjects: [], entries: [{ id: 'x' }] })), /entrée|sujet/i);
+  assert.equal(store.doc.subjects.length, 9);
+  assert.equal(notified, 0);
+  const fresh = emptyDoc(fakeNow, fakeId);
+  store.importJson(JSON.stringify(fresh));
+  assert.equal(store.doc.subjects.length, 3);
+  assert.equal(notified, 1);
+  assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).subjects.length, 3);
 });

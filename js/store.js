@@ -227,4 +227,52 @@ export class Store {
     });
     return impact;
   }
+
+  addEntry(subjectId, type, content) {
+    if (!['thought', 'decision', 'action'].includes(type)) throw new Error(`Type d'entrée non autorisé (${type}).`);
+    const c = (content ?? '').trim();
+    if (!c) throw new Error('Le contenu ne peut pas être vide.');
+    this._subject(subjectId);
+    return this._commit(doc => {
+      const e = { id: this.makeId(), subjectId, type, content: c, createdAt: this.now(), doneAt: null };
+      doc.entries.push(e);
+      return e;
+    });
+  }
+
+  updateEntry(id, content) {
+    const c = (content ?? '').trim();
+    if (!c) throw new Error('Le contenu ne peut pas être vide.');
+    const e = this._entry(id);
+    this._commit(() => { e.content = c; });
+  }
+
+  deleteEntry(id) {
+    this._entry(id);
+    this._commit(doc => { doc.entries = doc.entries.filter(x => x.id !== id); });
+  }
+
+  completeAction(id) {
+    const e = this._entry(id);
+    if (e.type !== 'action') throw new Error('Cette entrée n\'est pas une action.');
+    if (e.doneAt !== null) throw new Error('Action déjà faite.');
+    this._commit(() => { e.doneAt = this.now(); });
+  }
+
+  exportJson() {
+    return JSON.stringify(this._doc, null, 2);
+  }
+
+  exportFilename(dateIso = this.now()) {
+    return `mind-${dateIso.slice(0, 10)}.json`;
+  }
+
+  importJson(text) {
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { throw new Error('Le fichier n\'est pas du JSON valide.'); }
+    const v = validateDoc(parsed);
+    if (!v.ok) throw new Error(v.error);
+    const doc = migrate(v.doc);
+    this._commit(() => { this._doc = doc; });
+  }
 }
