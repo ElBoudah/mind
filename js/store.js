@@ -134,4 +134,97 @@ export class Store {
     if (!e) throw new Error(`Entrée introuvable (${id}).`);
     return e;
   }
+
+  _nextOrder(parentId) {
+    const siblings = q.children(this._doc, parentId, { includeRested: true });
+    return siblings.reduce((m, s) => Math.max(m, s.order), 0) + 1;
+  }
+
+  _cleanTitle(title) {
+    const t = (title ?? '').trim();
+    if (!t) throw new Error('Le titre ne peut pas être vide.');
+    return t;
+  }
+
+  createSubject({ title, parentId = null }) {
+    const t = this._cleanTitle(title);
+    if (parentId !== null && !q.subjectById(this._doc, parentId)) throw new Error('Parent introuvable.');
+    return this._commit(doc => {
+      const s = {
+        id: this.makeId(), parentId, title: t, intent: '', weight: 0,
+        order: this._nextOrder(parentId), createdAt: this.now(), restedAt: null,
+      };
+      doc.subjects.push(s);
+      return s;
+    });
+  }
+
+  renameSubject(id, title) {
+    const t = this._cleanTitle(title);
+    const s = this._subject(id);
+    this._commit(() => { s.title = t; });
+  }
+
+  setIntent(id, intent) {
+    const s = this._subject(id);
+    this._commit(() => { s.intent = intent ?? ''; });
+  }
+
+  setWeight(id, weight) {
+    if (!Number.isInteger(weight) || weight < 0 || weight > 3) throw new Error('Poids invalide.');
+    const s = this._subject(id);
+    if (s.parentId === null) throw new Error('Un thème (racine) n\'a pas de poids.');
+    if (s.weight === weight) return;
+    this._commit(doc => {
+      s.weight = weight;
+      doc.entries.push({ id: this.makeId(), subjectId: id, type: 'weight', content: String(weight), createdAt: this.now(), doneAt: null });
+    });
+  }
+
+  moveSubject(id, newParentId) {
+    const s = this._subject(id);
+    if (newParentId === id) throw new Error('Un sujet ne peut pas être déplacé dans lui-même.');
+    if (newParentId !== null) {
+      if (q.descendantIds(this._doc, id).includes(newParentId)) throw new Error('Impossible de déplacer un sujet dans un de ses descendants.');
+      const target = this._subject(newParentId);
+      if (!q.isActive(this._doc, target.id)) throw new Error('La cible est un sujet posé.');
+    }
+    const newOrder = this._nextOrder(newParentId);
+    this._commit(() => {
+      s.parentId = newParentId;
+      s.order = newOrder;
+      if (newParentId === null) s.weight = 0;
+    });
+  }
+
+
+  restSubject(id, lastWord = '') {
+    const s = this._subject(id);
+    const word = (lastWord ?? '').trim();
+    this._commit(doc => {
+      if (word) doc.entries.push({ id: this.makeId(), subjectId: id, type: 'thought', content: word, createdAt: this.now(), doneAt: null });
+      s.restedAt = this.now();
+    });
+  }
+
+  resumeSubject(id) {
+    const s = this._subject(id);
+    this._commit(() => { s.restedAt = null; });
+  }
+
+  deletionImpact(id) {
+    this._subject(id);
+    const ids = new Set([id, ...q.descendantIds(this._doc, id)]);
+    return { subjects: ids.size, entries: this._doc.entries.filter(e => ids.has(e.subjectId)).length };
+  }
+
+  deleteSubject(id) {
+    const impact = this.deletionImpact(id);
+    const ids = new Set([id, ...q.descendantIds(this._doc, id)]);
+    this._commit(doc => {
+      doc.subjects = doc.subjects.filter(s => !ids.has(s.id));
+      doc.entries = doc.entries.filter(e => !ids.has(e.subjectId));
+    });
+    return impact;
+  }
 }

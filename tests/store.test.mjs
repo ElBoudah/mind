@@ -99,3 +99,83 @@ test('load avec un document JSON valide mais mal formé repart à vide', () => {
   assert.equal(store.doc.subjects.length, 3);
   assert.equal(store.corrupt, raw);
 });
+
+test('createSubject ajoute un enfant avec le bon order', () => {
+  const { store } = newStore(makeDoc());
+  const s = store.createSubject({ title: '  Alice ', parentId: 'relations' });
+  assert.equal(s.title, 'Alice');
+  assert.equal(s.parentId, 'relations');
+  assert.equal(s.order, 3); // papa 1, laura 2
+  assert.equal(s.weight, 0);
+  assert.throws(() => store.createSubject({ title: '   ', parentId: 'relations' }), /titre/i);
+  assert.throws(() => store.createSubject({ title: 'X', parentId: 'inexistant' }), /parent/i);
+});
+
+test('renameSubject et setIntent', () => {
+  const { store } = newStore(makeDoc());
+  store.renameSubject('papa', ' Mon père ');
+  store.setIntent('papa', 'Retrouver de la complicité.');
+  assert.equal(store.doc.subjects.find(s => s.id === 'papa').title, 'Mon père');
+  assert.equal(store.doc.subjects.find(s => s.id === 'papa').intent, 'Retrouver de la complicité.');
+  assert.throws(() => store.renameSubject('papa', ''), /titre/i);
+});
+
+test('setWeight change le poids et trace une entrée', () => {
+  const { store } = newStore(makeDoc());
+  const before = store.doc.entries.length;
+  store.setWeight('laura', 2);
+  assert.equal(store.doc.subjects.find(s => s.id === 'laura').weight, 2);
+  const last = store.doc.entries.at(-1);
+  assert.equal(last.type, 'weight');
+  assert.equal(last.content, '2');
+  assert.equal(last.subjectId, 'laura');
+  store.setWeight('laura', 2); // inchangé
+  assert.equal(store.doc.entries.length, before + 1);
+  assert.throws(() => store.setWeight('relations', 1), /racine|thème/i);
+  assert.throws(() => store.setWeight('laura', 4), /poids/i);
+});
+
+test('moveSubject refuse un descendant et une cible posée', () => {
+  const { store } = newStore(makeDoc());
+  assert.throws(() => store.moveSubject('papa', 'communication'), /descendant/i);
+  assert.throws(() => store.moveSubject('papa', 'papa'), /lui-même/i);
+  assert.throws(() => store.moveSubject('papa', 'moi'), /posé/i);
+  store.moveSubject('laura', 'travail');
+  const laura = store.doc.subjects.find(s => s.id === 'laura');
+  assert.equal(laura.parentId, 'travail');
+  assert.equal(laura.order, 2); // job est order 1
+});
+
+test('moveSubject vers la racine remet le poids à 0', () => {
+  const { store } = newStore(makeDoc());
+  store.moveSubject('papa', null);
+  const papa = store.doc.subjects.find(s => s.id === 'papa');
+  assert.equal(papa.parentId, null);
+  assert.equal(papa.weight, 0);
+  assert.equal(papa.order, 4);
+});
+
+test('restSubject pose et note un dernier mot ; resumeSubject reprend', () => {
+  const { store } = newStore(makeDoc());
+  store.restSubject('papa', ' On en est là. ');
+  const papa = store.doc.subjects.find(s => s.id === 'papa');
+  assert.ok(papa.restedAt);
+  const last = store.doc.entries.at(-1);
+  assert.equal(last.type, 'thought');
+  assert.equal(last.content, 'On en est là.');
+  store.resumeSubject('papa');
+  assert.equal(store.doc.subjects.find(s => s.id === 'papa').restedAt, null);
+  const n = store.doc.entries.length;
+  store.restSubject('papa');
+  assert.equal(store.doc.entries.length, n); // pas d'entrée vide
+});
+
+test('deletionImpact et deleteSubject suppriment le sous-arbre', () => {
+  const { store } = newStore(makeDoc());
+  assert.deepEqual(store.deletionImpact('papa'), { subjects: 3, entries: 6 });
+  const r = store.deleteSubject('papa');
+  assert.deepEqual(r, { subjects: 3, entries: 6 });
+  assert.ok(!store.doc.subjects.some(s => ['papa', 'communication', 'vacances'].includes(s.id)));
+  assert.ok(!store.doc.entries.some(e => ['papa', 'communication', 'vacances'].includes(e.subjectId)));
+  assert.equal(store.doc.subjects.length, 6);
+});
