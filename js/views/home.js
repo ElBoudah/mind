@@ -51,6 +51,7 @@ export function render(root, { store, navigate }) {
       ${roots.map(s => themeRow(doc, s)).join('')}
     </section>
     <div class="footer-icons">
+      <button data-nav="tree" aria-label="Vue d'ensemble">☰</button>
       <button data-nav="search" aria-label="Rechercher">🔍</button>
       <button data-nav="settings" aria-label="Réglages">⚙</button>
     </div>

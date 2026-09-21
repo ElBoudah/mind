@@ -17,3 +17,8 @@ test('routeHash est l\'inverse de parseRoute', () => {
     assert.deepEqual(parseRoute(routeHash(r)), r);
   }
 });
+
+test('parseRoute reconnaît la vue d\'ensemble', () => {
+  assert.deepEqual(parseRoute('#/tree'), { name: 'tree' });
+  assert.equal(routeHash({ name: 'tree' }), '#/tree');
+});

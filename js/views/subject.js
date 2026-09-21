@@ -26,14 +26,19 @@ function childRow(doc, c, nowIso) {
   </button>`;
 }
 
-function journalItem(e) {
+const JOURNAL_PAGE = 30;
+// Sujet dont le journal est déplié en entier (état d'écran, pas de donnée).
+let expandedJournalFor = null;
+
+function journalItem(doc, s, e) {
   let body = escapeHtml(e.content);
   if (e.type === 'weight') body = `Poids → ${escapeHtml(e.content)}`;
   if (e.type === 'action') body = `Fait : ${body}`;
   const date = q.displayDate(e);
+  const origin = e.subjectId === s.id ? '' : `<span class="journal-origin" data-go="${escapeHtml(e.subjectId)}">${escapeHtml(q.relativePathLabel(doc, s.id, e.subjectId))}</span>`;
   return `<li class="journal-item ${e.type}" data-entry="${escapeHtml(e.id)}">
     <span class="journal-date">${formatDate(date)}</span>
-    <span class="journal-body">${body}</span>
+    <span class="journal-body">${origin}<span class="journal-text">${body}</span></span>
   </li>`;
 }
 
@@ -50,7 +55,10 @@ export function render(root, { store, route, navigate }) {
   const rested = s.restedAt !== null;
   const actions = q.openActions(doc, s.id);
   const kids = q.children(doc, s.id);
-  const entries = q.journal(doc, s.id);
+  const allEntries = q.journalTree(doc, s.id);
+  const showAll = expandedJournalFor === s.id;
+  const entries = showAll ? allEntries : allEntries.slice(0, JOURNAL_PAGE);
+  const hidden = allEntries.length - entries.length;
 
   const subjectsSection = `
     <section class="section">
@@ -76,7 +84,8 @@ export function render(root, { store, route, navigate }) {
     ${isRoot ? subjectsSection + actionsSection : actionsSection + subjectsSection}
     <section class="section">
       <h2 class="section-title">Journal</h2>
-      <ul class="journal">${entries.map(journalItem).join('') || '<li class="empty">Rien encore.</li>'}</ul>
+      <ul class="journal">${entries.map(e => journalItem(doc, s, e)).join('') || '<li class="empty">Rien encore.</li>'}</ul>
+      ${hidden > 0 ? `<button class="btn-text" data-more-journal>Voir ${hidden} entrée${hidden > 1 ? 's' : ''} de plus</button>` : ''}
     </section>
     <div class="bottom-bar">
       ${rested ? '<span></span>' : '<button class="btn" data-compose>+ pensée</button>'}
@@ -94,6 +103,7 @@ export function render(root, { store, route, navigate }) {
     if (e.target.closest('[data-home]')) return navigate({ name: 'home' });
     const go = e.target.closest('[data-go]');
     if (go) return navigate({ name: 'subject', id: go.dataset.go });
+    if (e.target.closest('[data-more-journal]')) { expandedJournalFor = s.id; return render(root, { store, route, navigate }); }
     if (e.target.closest('[data-weight]')) return store.setWeight(s.id, (s.weight + 1) % 4);
     if (e.target.closest('[data-resume]')) { store.resumeSubject(s.id); return notice('Repris.'); }
     if (e.target.closest('[data-new-child]')) return openNewSubjectSheet(store, navigate, s.id);

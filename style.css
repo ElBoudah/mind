@@ -89,8 +89,19 @@ h1.title span { overflow-wrap: anywhere; }
 .journal-date { color: var(--muted); font-size: 0.85rem; padding-top: 2px; }
 .journal-body { overflow-wrap: anywhere; white-space: pre-wrap; }
 .journal-item.weight { color: var(--muted); font-size: 0.85rem; }
-.journal-item.decision .journal-body::before { content: "★ "; color: var(--accent); }
-.journal-item.action .journal-body::before { content: "✓ "; color: var(--accent); }
+.journal-origin { display: block; font-size: 0.78rem; color: var(--accent); margin-bottom: 2px; }
+
+/* Vue d'ensemble */
+.tree { list-style: none; margin: 0; padding: 0; }
+.tree ul { list-style: none; margin: 0; padding: 0 0 0 22px; border-left: 1px solid var(--line); }
+.tree-row { display: flex; align-items: center; gap: 10px; min-height: 48px; }
+.tree-row .row-main { flex: 1; min-width: 0; text-align: left; padding: 8px 0; }
+.tree-root > .tree-row .row-title { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.tree-toggle { width: 40px; height: 40px; color: var(--muted); font-size: 0.9rem; flex: none; }
+.tree-toggle[aria-expanded="true"] { transform: rotate(90deg); }
+.tree-rested .row-title { color: var(--muted); }
+.journal-item.decision .journal-text::before { content: "★ "; color: var(--accent); }
+.journal-item.action .journal-text::before { content: "✓ "; color: var(--accent); }
 
 .banner { background: var(--accent-soft); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 

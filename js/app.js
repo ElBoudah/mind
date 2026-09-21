@@ -4,10 +4,11 @@ import * as home from './views/home.js';
 import * as subject from './views/subject.js';
 import * as search from './views/search.js';
 import * as settings from './views/settings.js';
+import * as tree from './views/overview.js';
 import { notice } from './views/helpers.js';
 
 const THEME_KEY = 'mind.theme';
-const views = { home, subject, search, settings };
+const views = { home, subject, search, settings, tree };
 
 export function applyTheme(pref) {
   const p = ['light', 'dark'].includes(pref) ? pref : 'system';

@@ -108,3 +108,25 @@ test('activeSubjectsByPath liste tous les actifs triés par chemin', () => {
   const ids = q.activeSubjectsByPath(makeDoc()).map(s => s.id);
   assert.deepEqual(ids, ['relations', 'laura', 'papa', 'communication', 'travail', 'job']);
 });
+
+test('journalTree agrège le sous-arbre : tout du sujet, sans les poids des enfants, sans les actions ouvertes', () => {
+  const doc = makeDoc();
+  doc.entries.push(
+    { id: 'e-com-2', subjectId: 'communication', type: 'thought', content: 'On a parlé.', createdAt: '2026-09-17T10:00:00.000Z', doneAt: null },
+    { id: 'e-com-3', subjectId: 'communication', type: 'weight', content: '2', createdAt: '2026-09-18T10:00:00.000Z', doneAt: null },
+  );
+  const ids = q.journalTree(doc, 'papa').map(e => e.id);
+  // e-com-2 (17/09) entre e-papa-4 (fait 15/09)... non : 17 > 15 donc e-com-2 d'abord ; e-com-3 poids d'un enfant exclu ; e-com-1 et e-vac-1 actions ouvertes exclues
+  assert.deepEqual(ids, ['e-com-2', 'e-papa-4', 'e-papa-2', 'e-papa-1']);
+  // le poids du sujet lui-même reste visible
+  assert.ok(q.journalTree(doc, 'job').map(e => e.id).includes('e-job-2'));
+  // un sujet sans descendant : identique à journal
+  assert.deepEqual(q.journalTree(doc, 'laura'), q.journal(doc, 'laura'));
+});
+
+test('relativePathLabel donne le chemin sous un ancêtre', () => {
+  const doc = makeDoc();
+  assert.equal(q.relativePathLabel(doc, 'relations', 'communication'), 'Papa › Communication');
+  assert.equal(q.relativePathLabel(doc, 'papa', 'communication'), 'Communication');
+  assert.equal(q.relativePathLabel(doc, 'papa', 'papa'), '');
+});

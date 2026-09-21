@@ -80,6 +80,27 @@ export function journal(doc, id) {
     .sort((a, b) => displayDate(b).localeCompare(displayDate(a)));
 }
 
+// Journal du sous-arbre : toutes les entrées du sujet, plus pensées / décisions / actions faites
+// de ses descendants (leurs changements de poids ne remontent pas, pour ne pas polluer).
+export function journalTree(doc, id) {
+  const below = new Set(descendantIds(doc, id));
+  return doc.entries
+    .filter(e => {
+      if (e.type === 'action' && e.doneAt === null) return false;
+      if (e.subjectId === id) return true;
+      return below.has(e.subjectId) && e.type !== 'weight';
+    })
+    .sort((a, b) => displayDate(b).localeCompare(displayDate(a)));
+}
+
+// Chemin de `toId` sous `fromId`, ancêtre strict ou égal : « Papa › Communication ». Vide si égal.
+export function relativePathLabel(doc, fromId, toId) {
+  if (fromId === toId) return '';
+  const chain = [...ancestors(doc, toId), subjectById(doc, toId)].filter(Boolean);
+  const start = chain.findIndex(s => s.id === fromId);
+  return chain.slice(start + 1).map(s => s.title).join(' › ');
+}
+
 export function activeCount(doc, id) {
   return descendantIds(doc, id).filter(d => isActive(doc, d)).length;
 }

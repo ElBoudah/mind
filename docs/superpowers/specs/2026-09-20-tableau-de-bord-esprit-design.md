@@ -47,7 +47,7 @@ Défilement vertical, sans bandeau de titre. Trois zones dans cet ordre :
 
 **Thèmes.** Les sujets racines actifs, avec le nombre de sujets actifs dans leur sous-arbre. Un tap ouvre la fiche du thème.
 
-**Pied de page.** Deux icônes discrètes : recherche et réglages.
+**Pied de page.** Trois icônes discrètes : vue d'ensemble, recherche et réglages.
 
 **Bouton flottant +** en bas à droite : crée un sujet. Formulaire minimal : titre, et sélection du parent parmi les thèmes et sujets actifs (par défaut le premier thème). Le poids et l'intention se remplissent ensuite dans la fiche.
 
@@ -60,7 +60,7 @@ Défilement vertical. Sections dans cet ordre :
 3. **Intention** : bloc de texte libre, optionnel, éditable sur place. Une seule zone, sans découpage imposé.
 4. **À faire** : actions ouvertes du sujet et de son sous-arbre, celles des enfants avec le titre de l'enfant en petit. Cocher sur place.
 5. **Sous-sujets** : titre, poids ou tiret, ancienneté de la dernière entrée. Bouton « + sous-sujet » en fin de liste.
-6. **Journal** : toutes les entrées du sujet lui-même (pas des enfants), la plus récente en haut. Rendu par type : pensée en texte simple, décision avec une étoile, action faite avec une coche et le préfixe « Fait : », changement de poids en ligne grise discrète. Appui long sur une entrée : modifier ou supprimer.
+6. **Journal** : toutes les entrées du sujet et de son sous-arbre, la plus récente en haut. Les entrées venues d'un descendant portent leur chemin relatif en petit (« Amis › Lucas »), cliquable ; les changements de poids des descendants ne remontent pas. Au-delà de 30 entrées, un bouton « Voir N entrées de plus ». Rendu par type : pensée en texte simple, décision avec une étoile, action faite avec une coche et le préfixe « Fait : », changement de poids en ligne grise discrète. Appui long sur une entrée : modifier ou supprimer.
 7. **Barre basse** : bouton « + pensée » et menu « ⋯ ».
 
 **Zone de saisie** (ouverte par « + pensée ») : glisse depuis le bas, trois onglets pensée / action / décision, un champ texte, un bouton valider. Pensée et décision vont au journal, action va dans « À faire ».
@@ -77,7 +77,11 @@ Défilement vertical. Sections dans cet ordre :
 
 Un champ texte, résultats filtrés sur les titres au fil de la frappe, insensibles à la casse et aux accents. Chaque résultat affiche son chemin, les sujets posés sont marqués comme tels. Un tap ouvre la fiche.
 
-### 4.4 Réglages
+### 4.4 Vue d'ensemble
+
+Un plan en retrait, texte seul : les thèmes en en-têtes, leurs sujets en dessous avec poids et ancienneté de la dernière entrée, les sous-sujets repliés derrière « ▸ N sujets ». Un tap sur le chevron déplie ou replie la branche, un tap sur un titre ouvre la fiche. Les sujets posés sont masqués, un bouton en bas les affiche.
+
+### 4.5 Réglages
 
 - Apparence : système / clair / sombre.
 - Exporter mes données.
