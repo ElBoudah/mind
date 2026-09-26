@@ -1,6 +1,7 @@
 import * as q from '../queries.js';
 import { validateDoc } from '../store.js';
 import { escapeHtml, pathLabel, formatDate, downloadText, notice } from './helpers.js';
+import { cloudSetupMind, cloudRestoreMind, cloudStatus } from '../cloud.js';
 
 const APP_VERSION = '1.1.0';
 
@@ -25,6 +26,9 @@ export function render(root, { store, navigate, applyTheme, currentTheme }) {
       <button class="row" data-export><span class="row-main"><span class="row-title">Exporter mes données</span><span class="row-sub">Télécharge un fichier JSON</span></span></button>
       <button class="row" data-import><span class="row-main"><span class="row-title">Importer des données</span><span class="row-sub">Remplace tout par un fichier exporté</span></span></button>
       <input type="file" accept="application/json,.json" hidden>
+      <button class="row" data-cloud-setup><span class="row-main"><span class="row-title">Configurer le cloud</span><span class="row-sub">Backup chiffré quotidien vers un Gist privé</span></span></button>
+      <button class="row" data-cloud-restore><span class="row-main"><span class="row-title">Restaurer depuis le cloud</span><span class="row-sub">Remplace tout par le dernier backup</span></span></button>
+      <p class="empty">${cloudStatus()}</p>
       ${store.corrupt ? '<button class="row" data-recover><span class="row-main"><span class="row-title">Récupérer les données illisibles</span><span class="row-sub">Télécharge le contenu brut trouvé au démarrage</span></span></button>' : ''}
       ${store.corrupt ? '<button class="row" data-forget-corrupt><span class="row-main"><span class="row-title">Oublier les données illisibles</span><span class="row-sub">Après les avoir téléchargées</span></span></button>' : ''}
     </section>
@@ -62,6 +66,8 @@ export function render(root, { store, navigate, applyTheme, currentTheme }) {
     if (pref) { applyTheme(pref.dataset.themePref); root.querySelectorAll('[data-theme-pref]').forEach(b => b.setAttribute('aria-selected', String(b === pref))); return; }
     if (e.target.closest('[data-export]')) return downloadText(store.exportFilename(), store.exportJson());
     if (e.target.closest('[data-import]')) return fileInput.click();
+    if (e.target.closest('[data-cloud-setup]')) return void cloudSetupMind().then(notice);
+    if (e.target.closest('[data-cloud-restore]')) return void cloudRestoreMind();
     if (e.target.closest('[data-recover]')) return downloadText('mind-illisible.json', store.corrupt);
     if (e.target.closest('[data-forget-corrupt]')) {
       if (confirm('Oublier définitivement les données illisibles ?')) { store.clearCorrupt(); notice('Oublié.'); }

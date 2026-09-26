@@ -6,6 +6,7 @@ import * as search from './views/search.js';
 import * as settings from './views/settings.js';
 import * as tree from './views/overview.js';
 import { notice } from './views/helpers.js';
+import { autoBackup, cloudBackup, mindBundleJson } from './cloud.js';
 
 const THEME_KEY = 'mind.theme';
 const views = { home, subject, search, settings, tree };
@@ -26,6 +27,10 @@ try {
   store.load();
   store.onSaveError = notice;
   applyTheme(currentTheme());
+
+  // Backups quotidiens automatiques (fichier local daté + push cloud chiffré).
+  autoBackup('mind', mindBundleJson);
+  cloudBackup('mind', mindBundleJson, {});
 
   const root = document.getElementById('app');
   let route = { name: 'home' };
